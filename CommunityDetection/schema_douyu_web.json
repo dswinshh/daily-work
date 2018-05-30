@@ -1,0 +1,1 @@
+{"fields":[{"metadata":{},"name":"clearText","nullable":true,"type":"string"},{"metadata":{},"name":"data","nullable":true,"type":{"fields":[{"metadata":{},"name":"Header","nullable":true,"type":"string"}],"type":"struct"}},{"metadata":{},"name":"ip","nullable":true,"type":"string"},{"metadata":{},"name":"smid","nullable":true,"type":"string"}],"type":"struct"}

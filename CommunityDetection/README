@@ -1,0 +1,35 @@
+假设：
+     一批团伙在进行黑厂作业时，每次请求记录的信息中有部分字段是一样的，基于这个前提希望通过团伙挖掘找出强特征，根据强特征找出一批行为类似的数据。
+步骤：
+     1.读取hdfs中detail_fp中20180518全天IOS数据作为IOS端团伙挖掘的数据，斗鱼20180521全天的web日志作为web端团伙挖掘的数据；
+     2.分别格式化IOS和web端的日志，然后以json格式保存；
+     3.调用groupby的jar包，返回分组分布数据；
+     4.基于经验手动分析得到异常。        
+详情
+分IOS，web端进行挖掘
+1.IOS
+    分组key: ip, ip_seg, data.boot, data.bssid, data.dns, data.Header.xforwardedfor
+    主要依据高危字段的分布来判断分组后数据异常与否，高危字段有inlineHooked, monkeyApps, alterApps, vpnApps, root, is_vpn, osver，同时利用idfs, smid调用文本进一步判断是否异常；
+    
+    产出：
+        在IOS团伙挖掘中发现玩吧用户一批可疑smid（根据这批可疑smid对应请求中inlinHooked非零），提供给用户内部自己进行数据校验。
+     
+2.WEB:
+    分组key: ip, ip_seg, data.clearText.plugins, data.Header.referer, data.Header.X-Forwarded-For, data.Header.X_Real_IP, canvas
+    ip, X-Forwarded-For, X_Real_IP这四个字段分组得到的结果都是一样的，原因：
+    理论上一次请求会跳转多个服务器，最终跳转至目标服务器，但是在数美的数据中仅发现一条数据X-Forwarded-For内有多个IP，其余的请求仅有一个IP，与寻找固定跳转服务器路径的假设矛盾，
+    这三个字段中以IP为例做分组，然后根据业务理解判断异常，分组得到smid_gr_top1中数值都较小，最大的smid出现次数102次，经排查无明显异常，其他smid由于数量太小，不足以构成团伙；
+    ip_seg，发现一个IP段下的UA一致，不合常理，之后验证在这个IP段下只有一个IP；
+    referer，84.89%的数据集中在一个referer上，没有像IOS那样的高危字段来很好的区分分数据；
+    plugins，clearText中status字段长度不为4的请求reject，数美clearText.status采集逻辑是四个状态值;
+    canvas，没有发现明显异常。
+    
+    对于显然异常的UA（经验判断得到），去建立一个UA黑名单库，维护成本太大，黑厂更换UA的成本极低。
+
+    产出：
+        clearText中status字段长度不为4的请求reject。
+
+总结：
+    数据中没有发现与假设相符合的实例；
+    spark自定义schema读取数据，spark udf；
+    IOS, web端字段的理解。
